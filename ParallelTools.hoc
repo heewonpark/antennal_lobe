@@ -1,0 +1,70 @@
+{load_file("stdlib.hoc")}
+{load_file("ParaCellSwc.hoc")}
+
+obfunc readSynapseFileList(){local NumFile localobj listf, pathlist, s strdef buff
+    listf = new File()
+    listf.ropen("./synlist/SynapseFileList.txt")
+    s = new String()
+
+    NumFile = listf.scanvar()
+    print "Number of Synapselist file:",NumFile
+    pathlist = new List()
+    for i = 0, NumFile-1{
+	listf.scanstr(buff)
+	s.s = buff
+	pathlist.append(s)
+    }
+    listf.close()
+    return pathlist
+}
+
+s_pre_cell = 0
+s_post_cell = 0
+s_pre_comp = 0
+s_post_comp = 0
+
+proc readSynapseList(){local len,dist,index localobj sf,strobj strdef filepath,buf
+    filepath = $s1
+    sf = new File()
+    strobj = new StringFunctions()
+    sf.ropen(filepath)
+    
+    sf.scanstr(buf)
+    sscanf(buf,"CellSwc[%d]",&s_pre_cell)
+    sf.scanstr(buf)
+    sscanf(buf,"CellSwc[%d]",&s_post_cell)
+    sf.scanstr(buf)
+    
+    
+    while(!sf.eof()){
+	s_pre_comp = sf.scanvar()
+	s_post_comp = sf.scanvar()
+	index = strobj.substr(filepath, "LN")
+	if(index == 10){
+	    // inhibition
+	    {p_setChemiSyn(-30,-65)}
+	}else{
+	    {p_setChemiSyn(-30,0)}
+	    // excitation
+	}
+	
+    }
+}
+proc p_setChemiSyn(){
+    // argument
+    // $1 :netcon threshold
+    // $2 :reversal potential 
+    par_chemi_create(s_pre_cell, s_pre_comp, s_post_cell, s_post_comp, $1, $2)
+}
+
+proc p_setGapJunc(){
+    // argument
+    // $1 : gap strength
+    par_gap_create(s_pre_cell, s_pre_comp, s_post_cell, s_post_comp, $1)
+}
+/*
+objref pathl
+pathl = readSynapseFileList()
+print pathl.o(0).s
+readSynapseList(pathl.o(0).s)
+*/

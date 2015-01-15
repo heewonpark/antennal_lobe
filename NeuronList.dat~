@@ -1,0 +1,6 @@
+# Number of Neurons : 3
+# Number of PNs : 1
+# Number of LNs : 2
+PN[0] 050622_4_sn_bestrigid0106_mkRegion.swc
+LN[0] 040823_5_sn_bestrigid0106_mkRegion.swc
+LN[1] 050205_7_sn_bestrigid0106_mkRegion.swc

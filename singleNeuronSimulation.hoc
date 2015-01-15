@@ -1,0 +1,105 @@
+
+{load_file("nrngui.hoc")}
+{load_file("stdlib.hoc")}
+{load_file("CellSwc.hoc")}
+
+rotationPerStep = 0.006
+
+/*--- make cell ---*/
+objref cell
+//cell = new CellSwc("swc/LN/typeI/040823_5_sn.swc")
+//cell = new CellSwc("050622_4_sn/050622_4_sn.swc")
+//cell = new CellSwc("050205_7_sn/050205_7_sn.swc")
+cell = new CellSwc("040823_5_sn/040823_5_sn.swc")
+//cell = new CellSwc("050622_4_sn/050622_4_sn_bestridgid.swc")
+
+//
+objref cell2
+//
+//cell2 = new CellSwc("050622_4_sn/050622_4_sn_converted.swc")
+//cell2 = new CellSwc("050622_4_sn/050622_4_sn_bestridgid.swc")
+//cell2 = new CellSwc("050205_7_sn/050205_7_sn_bestrigid.swc")
+//cell2 = new CellSwc("050205_7_sn/050205_7_sn.swc")
+//cell2 = new CellSwc("050622_4_sn/050622_4_sn.swc")
+/*--- insert mechanism ---*/
+objref cell3
+cell3 = new CellSwc("050205_7_sn/050205_7_sn_bestrigid.swc")
+
+forall insert hh
+//forall {
+//    insert pas
+//    g_pas = 0.1
+//}
+
+/*--- calc g ---*/
+meanx = meany = meanz = 0.
+print "SectionNum = ", cell.SectionNum
+proc calcPos() {	
+	for i = 0, cell.SectionNum - 1 cell.Dend[i] {
+		meanx += x3d(0)
+		meany += y3d(0)
+		meanz += z3d(0)
+	}
+	meanx /= cell.SectionNum
+	meany /= cell.SectionNum
+	meanz /= cell.SectionNum
+}
+calcPos()
+
+
+//cell.translation(-meanx, -meany, -meanz)
+cell.translation(0, 0, 0)
+
+
+
+/*--- stimulation ---*/
+objref ic
+cell.Dend[4328 % cell.SectionNum] ic = new IClamp(0.5)
+ic.dur = 500
+ic.del = 0
+ic.amp = 1
+
+/*--- shape plot ---*/
+objref sh
+sh = new PlotShape(1)
+sh.scale(0,0)
+
+sh.size(-300, 300, -300, 300)
+//sh.size(-3000, 3000, -3000, 3000)
+
+//sh.show(0)
+sh.exec_menu("Shape Plot")
+//sh.view(-100, -100,200, 200,50,50,1024,1024)
+tstop = 10
+dt = 0.2
+
+strdef command
+nframe = 0
+//cell.translation(30, 0, 0)
+
+proc step() { local i
+	for i = 1, nstep_steprun {
+		advance()
+	}
+	//cell.translation(0.05, 0.05*i,0)
+	sh.rotate(60, 0, 0, 0, rotationPerStep, 0)
+	Plot()
+	
+	
+	
+	
+	if (0) {
+		sh.printfile("temp.ps")
+		
+		system("pstopnm -xsize 1024 -ysize 1024 -portrait -xborder 0 -yborder 0 temp.ps")
+		
+		
+		// 3. convert the ppm file to YUV
+		system("ppmtoyuvsplit temp temp*.ppm")		
+		sprint(command, "mv temp*.ppm frames/LAL-VPC_model_%04d.ppm", nframe)
+		system(command)
+		
+		nframe = nframe + 1
+	}
+}
+

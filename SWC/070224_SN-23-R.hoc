@@ -1,0 +1,108 @@
+
+begintemplate Cell_CellName
+public init, topol, shape, subsets, geom, biophys, geom_nseg, biophys_inhomo
+public synlist, x, y, z, position, connect2target
+public dend
+public all
+public fobj
+
+create dend[348]
+
+objref synlist
+objref fobj
+
+proc init() {
+	fobj = new File()
+	fobj.ropen("Data_CellName.txt")
+	topol()
+	subsets()
+	geom()
+	biophys()
+	geom_nseg()
+	synlist = new List()
+	x = y = z = 0
+}
+
+
+proc topol() { local from, to, temp
+	shape()
+	for i = 1, fobj.scanvar() {
+		from = fobj.scanvar()
+		to = fobj.scanvar()
+		connect dend[to](1), dend[from](0)
+	}
+}
+
+tspine = 0
+proc chkspine() {
+	if($4 < 0) { nspine = nspine + 1 }
+	pt3dadd($1, $2, $3, abs($4))
+}
+
+proc shape() { local i, j, jmax
+	for i = 0, fobj.scanvar() - 1 {
+		dend[fobj.scanvar()] {
+			pt3dclear()
+			//jmax = fobj.scanvar()
+			for j = 1, 2 {
+				chkspine(fobj.scanvar(), fobj.scanvar(), fobj.scanvar(), fobj.scanvar())
+			}
+		}
+	}
+}
+
+objref all
+proc subsets() { local i
+	objref all
+	all = new SectionList()
+	for i = 0, 348 - 1 { dend[i] all.append() }
+}
+
+proc geom() {
+	forsec all { }
+}
+
+external lambda_f
+proc geom_nseg() {
+	forsec all { nseg = int((L / (0.1 * lambda_f(100)) + .9) / 2) * 2 + 1 }
+}
+
+proc biophys() {
+	forsec all {
+		Ra = 100
+		cm = 1
+		
+		insert hh
+	}
+}
+
+proc biophys_inhomo() {}
+
+proc position() {
+	for i = 0, fobj.scanvar() - 1 {
+	dend[i] for j = 0, n3d() - 1 {
+		pt3dchange(j, $1 - x + x3d(j), $2 - y + y3d(j), $3 - z + z3d(j), diam3d(j)) }
+	}
+}
+
+obfunc connect2target() { localobj nc //$o1 target point process, optional $o2 returned NetCon
+	dend[$3] nc = new NetCon(&v(1), $o1)
+	nc.threshold = 0
+	nc.delay = 0
+	
+	if (numarg () == 3) { $o2 = nc }
+	return nc
+	
+}
+
+objref syn_
+proc synapses() { local sfx
+	sfx = $1
+	dend[sfx] syn_ = new ExpSyn(0.8) synlist.append(syn_)
+	syn_.tau = 2
+	syn_.e = -80
+}
+
+func is_art() { return 0 }
+endtemplate Cell_CellName
+

@@ -1,0 +1,7 @@
+6
+./synlist/LN[0]_LN[1]_randomize.txt
+./synlist/PN[0]_LN[0]_randomize.txt
+./synlist/PN[0]_LN[1]_randomize.txt
+./synlist/LN[1]_LN[0]_randomize.txt
+./synlist/LN[0]_PN[0]_randomize.txt
+./synlist/LN[1]_PN[0]_randomize.txt

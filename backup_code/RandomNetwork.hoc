@@ -1,0 +1,170 @@
+{load_file("nrngui.hoc")}
+// load the GUI and standard run libraries
+objref pc
+pc = new ParallelContext()
+//////////////////////////////////
+// Step 1: Define the cell classes
+//////////////////////////////////
+{load_file("cellid.hoc")}
+load_file("ranstream.hoc")
+// to give each cell its own sequence generator
+//////////////////////////////////////////////////////////////
+// Steps 2 and 3 are to create the cells and connect the cells
+//////////////////////////////////////////////////////////////
+NCELL = 20 // total number of cells in the ring network
+// identical to total number of cells on all machines
+C_E = 3 // # of excitatory connections received by each cell
+// 2 gives more sustained activity!
+connect_random_low_start_ = 1 // low seed for mcell_ran4_init()
+objref cells, nclist // cells will be a List that holds
+// all instances of network cells that exist on this host
+// nclist will hold all NetCon instances that exist on this host
+// and connect network spike sources to targets on this host (nclist)
+objref ranlist // for RandomStreams on this host
+proc mknet() {
+    mkcells($1) // create the cells
+    connectcells() // connect them together
+}
+objref gidvec // to associate gid and position in cells List
+// useful for setting up connections and reporting connectivity
+// creates the cells and appends them to a List called cells
+// argument is the number of cells to be created
+proc mkcells() {local i localobj cell, nc, nil
+    cells = new List()
+    ranlist = new List()
+    gidvec = new Vector()
+    // each host gets every nhost'th cell, starting from the id of the host
+    // and continuing until no more cells are left
+    for (i=pc.id; i < $1; i += pc.nhost) {
+	cell = new B_BallStick()
+	for j=0, cell.synlist.count-1 {
+	    cell.synlist.o(j).cid = i
+	    cell.synlist.o(j).sid = j
+	}
+	cells.append(cell)
+	pc.set_gid2node(i, pc.id) // associate gid i with this host
+	nc = cell.connect2target(nil) // attach spike detector to cell
+	pc.cell(i, nc) // associate gid i with spike detector
+	ranlist.append(new RandomStream(i)) // ranlist.o(i) corresponds to cell associated with gid i
+	gidvec.append(i)
+    }
+    report_gidvecs()
+}
+// reports distribution of cells across hosts
+proc report_gidvecs() { local i, rank
+    pc.barrier() // wait for all hosts to get to this pointM.L. Hines, N.T. Carnevale
+    if (pc.id==0) printf("\ngidvecs on the various hosts\n")
+    for rank=0, pc.nhost-1 { // host 0 first, then 1, 2, etc.
+	if (rank==pc.id) {
+	    print "host ", pc.id
+	    gidvec.printf()
+	}
+	pc.barrier() // wait for all hosts to get to this point
+    }
+}
+// connects the cells
+// appends the NetCons to a List called nclist
+proc connectcells() {local i, nsyn, r localobj syn, nc, rs, u
+    mcell_ran4_init(connect_random_low_start_) // initialize the pseudorandom number generator
+    u = new Vector(NCELL) // for sampling without replacement
+    nclist = new List()
+    for i=0, cells.count-1 {
+	// target synapse is synlist.object(0) on cells.object(i)
+	syn = cells.object(i).synlist.object(0)
+	rs = ranlist.object(i) // the RandomStream that corresponds to cells.object(i)
+	rs.start()
+	rs.r.discunif(0, NCELL-1) // return integer in range 0..NCELL-1
+	u.fill(0) // u.x[i]==1 means spike source i has already been chosen
+	nsyn = 0
+	while (nsyn < C_E) {
+	    r = rs.repick()
+	    // no self-connection, & only one connection from any source
+	    if (r != gidvec.x[i]) if (u.x[r] == 0) {
+		// set up connection from source to target
+		nc = pc.gid_connect(r, syn)
+		nclist.append(nc)
+		nc.delay = 1
+		nc.weight = 0.01
+		u.x[r] = 1
+		nsyn += 1
+	    }
+	}
+    }
+}
+mknet(NCELL)
+// go ahead and create the net!
+//////////////////////////
+// Report net architecture
+//////////////////////////
+proc tracenet() { local i, srcid localobj src, tgt, nil
+    pc.barrier() // wait for all hosts to get to this point
+    if (pc.id==0) printf("source\ttarget\tsynapse\n") // print header once
+    for rank=0, pc.nhost-1 { // host 0 first, then 1, 2, etc.
+	if (rank==pc.id) {
+	    for i = 0, nclist.count-1 {
+		srcid = nclist.o(i).srcgid()
+		tgt = nclist.o(i).syn
+		printf("%d\t%d\t%d\n", srcid, tgt.cid, tgt.sid)
+	    }
+	}
+	pc.barrier() // wait for all hosts to get to this point
+    }
+}
+tracenet()
+//////////////////////////////////////////////////
+// Instrumentation, i.e. stimulation and recording
+//////////////////////////////////////////////////
+// stim will be an artificial spiking cell that generates a "spike" event that is delivered to
+// the first cell in the net by ncstim in order to initiate network spiking.
+// We won't bother including this "external stimulus source" or its NetCon
+// in the network's lists of cells or NetCons.
+objref stim, ncstim
+proc mkstim() {
+    // exit if the first cell in the net does not exist on this host
+    if (!pc.gid_exists(0)) { return }
+    stim = new NetStim()
+    stim.number = 1
+    stim.start = 0
+    ncstim = new NetCon(stim, pc.gid2cell(0).synlist.object(0))
+    ncstim.delay = 0
+    ncstim.weight = 0.01
+}
+mkstim()
+objref tvec, idvec // will be Vectors that record all spike times (tvec)
+// and the corresponding id numbers of the cells that spiked (idvec)
+proc spikerecord() {local i localobj nc, nil
+    tvec = new Vector()
+    idvec = new Vector()
+    for i=0, cells.count-1 {
+	nc = cells.object(i).connect2target(nil)
+	nc.record(tvec, idvec, nc.srcgid)
+	// the Vector will continue to record spike times even after the NetCon has been destroyed
+    }
+}
+spikerecord()
+/////////////////////
+// Simulation control
+/////////////////////
+tstop = 100
+{pc.set_maxstep(10)}
+stdinit()
+{pc.psolve(tstop)}
+////////////////////////////
+// Report simulation results
+////////////////////////////
+proc spikeout() { local i, rank
+    pc.barrier() // wait for all hosts to get to this point
+    if (pc.id==0) printf("\ntime\t cell\n") // print header once
+    for rank=0, pc.nhost-1 { // host 0 first, then 1, 2, etc.
+	if (rank==pc.id) {
+	    for i=0, tvec.size-1 {
+		printf("%g\t %d\n", tvec.x[i], idvec.x[i])
+	    }
+	}
+	pc.barrier() // wait for all hosts to get to this point
+    }
+}
+spikeout()
+{pc.runworker()}
+{pc.done()}
+quit()

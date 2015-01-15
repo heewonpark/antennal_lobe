@@ -1,0 +1,50 @@
+{load_file("nrngui.hoc")}
+{load_file("stdlib.hoc")}
+{load_file("CellSwc_Ver2.hoc")}
+{load_file("areaList.hoc")}
+rotationPerStep = 0.006
+
+/*--- make cell ---*/
+objref cell
+//cell = new CellSwc("swc/LN/typeI/040823_5_sn.swc")
+//cell = new CellSwc("050622_4_sn/050622_4_sn.swc")
+//cell = new CellSwc("050205_7_sn/050205_7_sn.swc")
+//cell = new CellSwc("040823_5_sn/040823_5_sn.swc")
+//cell = new CellSwc("050622_4_sn/050622_4_sn_bestridgid.swc")
+cell = new CellSwc("050205_7_sn_bestrigid0106_mkRegion.swc")
+
+objref cell2
+cell2 = new CellSwc("040823_5_sn_bestrigid0106_mkRegion.swc")
+objref cell3
+cell3 = new CellSwc("050622_4_sn_bestrigid0106_mkRegion.swc")
+
+
+/*--- insert mechanism ---*/
+
+objref shape
+shape = new Shape()
+
+proc paint_neuron(){local i, s_color, n_color localobj c
+    c = $o1
+    s_color = $2
+    n_color = $3
+    for(i=0;i<c.SectionNum;i=i+1){
+	parentType = c.Type.x[c.pID.x[i]]
+	if((c.Type.x[i] == 7)&&(parentType == 7)){
+	    c.Dend[i] shape.color(s_color)
+	}else{
+	    c.Dend[i] shape.color(n_color)
+	}
+    }
+    //return c
+}
+
+
+paint_neuron(cell,2,7)
+paint_neuron(cell2,3,8)
+paint_neuron(cell3,4,9)
+
+shape.show(0)
+//sh.exec_menu("Shape Plot")
+//sh.exec_menu("Space Plot")
+//sh.view(-100, -100,200, 200,50,50,1024,1024)

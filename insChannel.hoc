@@ -1,0 +1,41 @@
+//*************************
+// insChannel.hoc
+// 2012/01/25
+// Yusuke Mori
+//*************************
+
+//-------------------------
+// *** func&proc ***
+// insertChannel()
+
+proc insertChannel(){local chPoint, len  localobj sl
+    // argument
+    // $o1:compartment
+    // $2 :area threshold
+    // $3 :gnabar
+    sl = new SectionList()
+    chPoint = 0.5
+    $o1.sec {
+	distance(0, chPoint)
+	sl.wholetree()
+    }    
+    forsec sl {
+	len = distance(1, chPoint)
+	if (len < $2){
+	    print secname()
+	    insert na_kloppenburg
+	    insert ka_kloppenburg
+	    insert ks_kloppenburg
+	    insert ca_kloppenburg
+	    
+	    gnabar_na_kloppenburg = $3
+	    gkbar_ka_kloppenburg = $4
+	    gkbar_ks_kloppenburg = $5
+	    gcabar_ca_kloppenburg = $6
+	   
+
+	}
+
+    }
+
+}

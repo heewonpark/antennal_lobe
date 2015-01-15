@@ -1,0 +1,75 @@
+//*************************
+// areaList.hoc
+// 2012/01/17
+// Yusuke Mori
+//*************************
+
+//-------------------------
+// ***HOW TO USE***
+// objref sl
+// sl = arealist(start, edge)
+//-------------------------
+
+//-------------------------
+// *** func&proc ***
+// areaList()
+// num2comp()
+// compSec()
+// areaColor()
+
+strdef str1
+strdef str2
+objref nil
+
+obfunc areaList(){ localobj tmplist, tmpref, edgeref, dellist, i, nc
+    //--- edge point ---
+     edgeref = num2comp($1, $3)
+    //--- tmp point ---
+     tmpref = num2comp($2, $3)
+    //--- make list ---
+    tmplist = new SectionList()
+    dellist = new SectionList()
+    
+    if($1 < $2){
+	edgeref.sec tmplist.subtree()	
+    }else{
+	tmpref.sec tmplist.wholetree()
+	edgeref.sec dellist.subtree()	
+	tmplist.remove(dellist)
+    }
+    return tmplist
+    //***
+    // if $1 == $2 no data!
+}
+
+
+obfunc num2comp(){ localobj tmpref
+    if(numarg() == 1){
+	access CellSwc[0].Dend[$1]
+    } else {
+	access CellSwc[$2].Dend[$1]
+    }
+    tmpref = new SectionRef()
+    return tmpref
+}
+
+func compSec(){
+    // $o1:edge ref
+    // $o2:tmp ref
+    $o1.sec str1 = secname()
+    $o2.sec str2 = secname()
+    return(strcmp(str1, str2))
+}
+
+obfunc areaView(){ localobj ps
+    // $o1:area list
+    // $2 :color
+    // $o3:plot shape
+    if ($o3 != nil){
+	ps = $o3
+    } else {
+	ps = new PlotShape(1)
+    }
+    ps.color_list($o1, $2)
+    return ps
+}

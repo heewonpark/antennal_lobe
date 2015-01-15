@@ -1,0 +1,59 @@
+{load_file("nrngui.hoc")}
+{load_file("RecepterNeuron.hoc")}
+
+objref recepter
+recepter = new Stick()
+
+strdef filename 
+stoptime = 1000
+
+/*
+sprint(filename, "./spiketiming/spiketiming100.dat")
+recepter.setIClamp(stoptime,dt,filename)
+*/
+recepter.setSinglePulse(1,1)
+
+objref vec,vec2
+objref tvec
+proc setVoltageRecord(){
+    vec = new Vector()
+    tvec = new Vector()
+    vec2 = new Vector()
+    tvec.record(&t)
+    vec.record(&recepter.soma.v(1.0))
+    vec2.record(&recepter.soma.v(0.0))
+}
+setVoltageRecord()
+
+proc printVoltageRecord(){localobj mt,file
+    mt = new Matrix()
+    file = new File()
+    mt.resize(vec.size(),3)
+    mt.setcol(0,tvec)
+    mt.setcol(1,vec)
+    mt.setcol(2,vec2)
+//    mt.setcol(3,recepter.stim_vec)
+    file.wopen("receptertestrecord.txt")
+    mt.fprint(file, "%5.5f\t")
+    file.close()
+}
+tstop = stoptime
+run()
+printVoltageRecord()
+/*
+proc fprintDatas(){localobj file
+    file = new File()
+    file.wopen("receptertestdata.txt")
+    file.printf("stim_vec ")
+    recepter.stim_vec.printf(file)
+    file.printf("tvec")    
+    recepter.tvec.printf(file)
+    file.printf("stim_flg")
+    recepter.stim_flg.fwrite(file)
+    file.printf("spiketiming")
+    recepter.spiketiming.fwrite(file)
+    file.close()
+}
+
+fprintDatas()
+*/
