@@ -11,12 +11,12 @@ objref cell
 //cell = new CellSwc("050205_7_sn/050205_7_sn.swc")
 //cell = new CellSwc("040823_5_sn/040823_5_sn.swc")
 //cell = new CellSwc("050622_4_sn/050622_4_sn_bestridgid.swc")
-cell = new CellSwc("050205_7_sn_bestrigid0106_mkRegion.swc")
+cell = new CellSwc("./SWC/050205_7_sn_bestrigid0106_mkRegion.swc")
 
 objref cell2
-cell2 = new CellSwc("040823_5_sn_bestrigid0106_mkRegion.swc")
+cell2 = new CellSwc("./SWC/040823_5_sn_bestrigid0106_mkRegion.swc")
 objref cell3
-cell3 = new CellSwc("050622_4_sn_bestrigid0106_mkRegion.swc")
+cell3 = new CellSwc("./SWC/050622_4_sn_bestrigid0106_mkRegion.swc")
 
 
 /*--- insert mechanism ---*/
