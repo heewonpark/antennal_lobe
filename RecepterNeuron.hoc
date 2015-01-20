@@ -5,8 +5,12 @@ public biophys, connect2target, setIClamp
 public ic,stim_vec,tvec,stim_flg,spiketiming,tvec
 
 public setSinglePulse
+public setSerialPulse
+public syn,synlist
 
+objref synlist
 proc init(){
+    synlist = new List()
     biophys()
 }
 
@@ -18,11 +22,22 @@ proc biophys(){
 	L = 150
 
 	insert hh
-	gnabar_hh = 0.0001
-	gkbar_hh = 0.001
-  
+	//	gnabar_hh = 0.0001
+	//	gkbar_hh = 0.001
+	
   }
 }
+
+objref syn
+
+public synapse
+obfunc synapse(){
+
+    soma syn = new ExpSyn(0.5) synlist.append(syn)
+    syn.e = 0
+    return syn
+}
+
 
 obfunc connect2target(){local numSynapses localobj nc,target
     target = $o1
@@ -125,12 +140,31 @@ proc setIClamp(){local stoptime, timestep, i, j, num_spike, flg, stim_on,start_t
 }
 objref iclamp
 proc setSinglePulse(){local id, num
-    id = $1
-    num = $2
-    
+    nhost = $1
+    id = $2
+    num = $3
+    //print "setSinglePulse", id
     soma iclamp = new IClamp(0.5)
     iclamp.dur = 2
     iclamp.amp = 4
-    iclamp.del = 20*id*(num+1)
+    iclamp.del = 0.1
+    //iclamp.del = 2*(nhost-3)*(num)+2*(id-3)
+    //print iclamp.del
+    //iclamp.del = 20*id*(num+1)
+    //    psection()
+}
+proc setSerialPulse(){local id, num
+    nhost = $1
+    id = $2
+    num = $3
+    //print "setSinglePulse", id
+    soma iclamp = new IClamp(0.5)
+    iclamp.dur = 100
+    iclamp.amp = 1.0
+    iclamp.del = 0.5
+    //iclamp.del = 2*(nhost-3)*(num)+2*(id-3)
+    //print iclamp.del
+    //iclamp.del = 20*id*(num+1)
+    //    psection()
 }
 endtemplate Stick

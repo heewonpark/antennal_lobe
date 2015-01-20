@@ -4,14 +4,17 @@
 obfunc readSynapseFileList(){local NumFile localobj listf, pathlist, s strdef buff
     listf = new File()
     listf.ropen("./synlist/SynapseFileList.txt")
-    s = new String()
-
+    
     NumFile = listf.scanvar()
-    print "Number of Synapselist file:",NumFile
+    if(pc.id==0){
+	print "Number of Synapselist file:",NumFile
+    }    
     pathlist = new List()
     for i = 0, NumFile-1{
+	s = new String()
 	listf.scanstr(buff)
 	s.s = buff
+	//print s.s
 	pathlist.append(s)
     }
     listf.close()
@@ -23,10 +26,22 @@ s_post_cell = 0
 s_pre_comp = 0
 s_post_comp = 0
 
-proc readSynapseList(){local len,dist,index localobj sf,strobj strdef filepath,buf
+syngid = 10000
+
+objref nclist_para
+objref pre_comps,post_comps
+objref syngids
+objref types//types 1 inhibition 2 excitation
+nclist_para = new List()
+proc readSynapseList(){local len,dist,index localobj sf,strobj,pre,post,nc,nil,syn strdef filepath,buf
     filepath = $s1
     sf = new File()
     strobj = new StringFunctions()
+    pre_comps = new Vector()
+    post_comps = new Vector()
+    types = new Vector()
+    syngids = new Vector()
+
     sf.ropen(filepath)
     
     sf.scanstr(buf)
@@ -35,21 +50,75 @@ proc readSynapseList(){local len,dist,index localobj sf,strobj strdef filepath,b
     sscanf(buf,"CellSwc[%d]",&s_post_cell)
     sf.scanstr(buf)
     
+    index = strobj.substr(filepath, "LN")
+    //print filepath, index
     
     while(!sf.eof()){
 	s_pre_comp = sf.scanvar()
 	s_post_comp = sf.scanvar()
-	index = strobj.substr(filepath, "LN")
+	pre_comps.append(s_pre_comp)
+	post_comps.append(s_post_comp)
+	syngids.append(syngid)
 	if(index == 10){
-	    // inhibition
-	    {p_setChemiSyn(-30,-65)}
+	    print s_pre_cell, s_pre_comp, s_post_cell,s_post_comp,"Inhibition"
+	    types.append(1)
 	}else{
-	    {p_setChemiSyn(-30,0)}
-	    // excitation
+	    print s_pre_cell, s_pre_comp, s_post_cell,s_post_comp,"Excitation"
+	    types.append(2)
 	}
-	
+	syngid +=1
+    }
+    print "types.size ",types.size()
+    if(types.size()!=syngids.size()){
+	print "readSynapseList : ERROR"
+	quit()
+    }
+    print syngids
+    pc.barrier()
+    makePreSynapse(s_pre_cell)
+    pc.barrier()
+    makePostSynapse(s_post_cell,1,1)
+    pc.barrier()
+}
+
+
+proc makePreSynapse(){local i, pre_cell localobj pre,nc,nil
+    pre_cell = $1
+    if(pc.gid_exists(pre_cell)){
+	pre = pc.gid2obj(pre_cell)
+	for i=0, pre_comps.size()-1{
+	    nc = pre.connect2target(pre_comps.x[i],nil)
+	    pc.set_gid2node(syngids.x[i],pc.id)
+	    pc.cell(syngids.x[i],nc)
+	    nclist_para.append(nc)
+	}
     }
 }
+
+proc makePostSynapse(){local i, post_cell,rev_potential, delay, weight localobj post,nc,syn
+    post_cell = $1
+    delay = $2
+    weight = $3
+    if(pc.gid_exists(post_cell)){
+	post = pc.gid2obj(post_cell)
+	for i=0, post_comps.size()-1{
+	    if(types.x[i]==1){
+		rev_potential = -75
+	    }else if(types.x[i]==2){
+		rev_potential = 0
+	    }else{
+		print "makePostSynapse : Type error"
+		return
+	    }
+	    syn = post.mkSyn(post_comps.x[i],rev_potential)
+	    nc = pc.gid_connect(syngids.x[i],syn)
+	    nc.delay = delay
+	    nc.weight = weight
+	    nclist_para.append(nc)
+	}
+    }
+}
+
 proc p_setChemiSyn(){
     // argument
     // $1 :netcon threshold
@@ -62,9 +131,16 @@ proc p_setGapJunc(){
     // $1 : gap strength
     par_gap_create(s_pre_cell, s_pre_comp, s_post_cell, s_post_comp, $1)
 }
+
+
 /*
 objref pathl
 pathl = readSynapseFileList()
 print pathl.o(0).s
+print pathl.o(1).s
+print pathl.o(2).s
+print pathl.o(3).s
+print pathl.o(4).s
+print pathl.o(5).s
 readSynapseList(pathl.o(0).s)
 */

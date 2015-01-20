@@ -38,7 +38,7 @@ objref dendlist
 
 //--- number of cells and synapse gid (reset later) ---
 NCELLS = 0
-syn_gid = NCELLS + 10
+//syn_gid = NCELLS + 10
 
 proc readlist(){ localobj strFunc strdef str, strTemp
     swclist = new File()
@@ -224,28 +224,40 @@ proc par_chemi_create(){ localobj nc, syn, c, csr
     // $1 gid of pre
     // $2 compartment_num of pre
     // $3 gid of post
-    // $4 cimpartment_num of post
+    // $4 compartment_num of post
     // $5 nc threshold
     // $6 reversal potential
-
+    
+    //print "syn_gid ",syn_gid
     //--- post
     if(pc.gid_exists($3)){
+	
 	c = pc.gid2obj($3)
 	c.Dend[$4] csr = new SectionRef()
+	print csr
 	par_postsynapse(csr, syn_gid, $6)
+	//c.Dend[$4] psection()
+	
+	//par_postsynapse2($3,$4,syn_gid,$6)
     }
     
     pc.barrier()
     
     //--- pre
     if(pc.gid_exists($1)){
+	
 	c = pc.gid2obj($1)
 	c.Dend[$2] csr = new SectionRef()
+	print csr
 	par_presynapse(csr, syn_gid, $5)
+	
+	//par_presynapse2($1,$2,syn_gid,$5)
     }
-    print syn_gid
+    pc.barrier()
+    //print syn_gid
     syn_gid += 1
 }
+
 
 
 proc par_postsynapse(){ local syn_gid localobj nc, syn
@@ -253,12 +265,35 @@ proc par_postsynapse(){ local syn_gid localobj nc, syn
     // #o1: post section ref
     access $o1.sec
     syn_gid = $2
-    syn = new Exp2Syn(.5)
+    syn = new ExpSyn(.5)
     //--- reversal potential ---
     syn.e = $3
+    //print syn.e
+    nc = pc.gid_connect(syn_gid, syn)
+    nc.delay = 1
+    nc.weight = 1
+    //print "post nc.threshold ",nc.threshold," nc.delay ",nc.delay," nc.weight ",nc.weight
+    synlist.append(syn)
+}
 
-    pc.gid_connect(syn_gid, syn)
-
+proc par_postsynapse2(){ local syn_gid,post_gid localobj nc, syn, c
+    // argument
+    // $1 cell's gid
+    // $2 compartment number
+    // $3 syn_gid
+    post_gid = $1
+    syn_gid = $3
+    c = pc.gid2obj(post_gid)
+    print "post ",post_gid, c, c.SectionNum,syn_gid
+    c.Dend[$2] syn = new ExpSyn(0.5)
+    
+    syn.e = $4
+    //print syn.e
+    //--- reversal potential ---
+    nc = pc.gid_connect(syn_gid, syn)
+    nc.delay = 1
+    nc.weight = 1
+    //print "post nc.threshold ",nc.threshold," nc.delay ",nc.delay," nc.weight ",nc.weight
     synlist.append(syn)
 }
 
@@ -267,9 +302,30 @@ proc par_presynapse(){ local syn_gid localobj nc
     // $o1: pre section ref
     access $o1.sec
     syn_gid = $2
-    nc = new NetCon(&v(.5), nil)
+    nc = new NetCon(&v(0.5), nil)
     
-    nc.threshold = $3
+    //    nc.threshold = $3
+    nc.threshold = 1
+    nc.weight = 1
+
+    nclist.append(nc)
+    pc.set_gid2node(syn_gid, pc.id)
+    pc.cell(syn_gid, nc)
+}
+
+proc par_presynapse2(){ local syn_gid,pre_gid localobj nc,c
+    // argument
+    // $1 cell's gid
+    // $2 compartment number
+    // $3 syn_gid
+    pre_gid = $1
+    syn_gid = $3
+    c = pc.gid2obj(pre_gid)
+    print "pre ",pre_gid, c, c.SectionNum, syn_gid
+    c.Dend[$2] nc = new NetCon(&v(0.5), nil)
+    //    nc.threshold = $3
+    nc.threshold = 10
+    nc.weight = 1
 
     nclist.append(nc)
     pc.set_gid2node(syn_gid, pc.id)

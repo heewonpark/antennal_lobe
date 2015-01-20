@@ -5,6 +5,7 @@
 rotationPerStep = 0.006
 
 /*--- make cell ---*/
+
 objref cell
 //cell = new CellSwc("swc/LN/typeI/040823_5_sn.swc")
 //cell = new CellSwc("050622_4_sn/050622_4_sn.swc")

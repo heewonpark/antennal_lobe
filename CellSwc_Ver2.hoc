@@ -19,6 +19,10 @@ public Dend, SectionNum
 public synlist,synapse
 public SynNumberList, numSynapse
 public mkSynapses
+
+public synlist_,mkSyn
+
+public mkIclamp
 // will be re-created in shape()
 
 public ID, Type, pID //pID -> parent ID
@@ -58,6 +62,8 @@ objref SynList
 objref SynNo
 
 objref synlist
+
+objref synlist_
 //------------------------------------------------------------------------------
 // geometry
 //------------------------------------------------------------------------------
@@ -84,6 +90,8 @@ proc init() {
     synlist = new List()
     SynNo = new Vector()
     
+    synlist_ = new List()
+
     all = new SectionList()
     secInput = new SectionList()
     secOutput = new SectionList()
@@ -339,7 +347,7 @@ proc ReadSynlist(){local i localobj f
 	SynNumberList.append(f.scanvar())
     }
     //print numSynapse
-    //print SynNumberList
+    print SynNumberList
 }
 
 objref syn__
@@ -348,6 +356,7 @@ objref syn__
 proc synapses(){local targetno
     targetno = $1
     Dend[targetno] syn__ = new ExpSid(0.2) synlist.append(syn__)
+    //print syn__.e
     //syn__.tau = 2
     Dend[targetno] syn__ = new ExpSid(0.4) synlist.append(syn__)
     Dend[targetno] syn__ = new ExpSid(0.6) synlist.append(syn__)
@@ -365,6 +374,30 @@ proc synapse(){local targetno
     //    syn__.e = -80
 }
 */
+
+objref Syn__
+obfunc mkSyn(){local targetno
+    targetno = $1
+    
+    Dend[targetno] Syn__ = new ExpSid(0.5) synlist_.append(Syn__) 
+    Syn__.tau = 0.1
+    Syn__.e   = $2
+    return Syn__
+}
+
+public connect2target
+obfunc connect2target(){local numSynapses,pre_comp localobj nc,target
+    pre_comp = $1
+    target = $o2
+    //numSynapses = $3
+    Dend[pre_comp] nc = new NetCon(&v(0.5),target)
+    nc.threshold = 1
+    //nc.weight = 10/numSynapses
+    //print "nc.weight ",nc.weight
+    return nc
+}
+
+
 public doNothing
 proc doNothing(){
     print $s1
@@ -381,6 +414,20 @@ proc mkSynapses(){local i
 	synapses(SynNumberList.x[i])
     }
 }
+
+objref iclamp
+proc mkIclamp(){local id, num,targetno
+    targetno = $1
+    //print "setSinglePulse", id
+    Dend[targetno] iclamp = new IClamp(0.5)
+    iclamp.dur = 20
+    iclamp.amp = 1.5
+    iclamp.del = 0.5
+    //iclamp.del = 2*id*(num+1)
+    //iclamp.del = 20*id*(num+1)
+    //    psection()
+}
+
 
 obfunc makeNetCon() { local targetno localobj nc, r
 	// args : sourceSectionNo, targetSyn, threshold, delay, weight
